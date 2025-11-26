@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 加州公路之旅 | LA - SF</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Patrick+Hand&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #f0f9ff; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Hand-drawn font for map */
+        .hand-font { font-family: 'Patrick Hand', 'Comic Sans MS', 'Chalkboard SE', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // --- Inline Icons Components ---
+        const IconBase = ({ children, className, size = 24, ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
+        );
+
+        const Icons = {
+            MapIcon: (props) => <IconBase {...props}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></IconBase>,
+            CalendarIcon: (props) => <IconBase {...props}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></IconBase>,
+            CheckSquareIcon: (props) => <IconBase {...props}><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></IconBase>,
+            DollarSignIcon: (props) => <IconBase {...props}><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></IconBase>,
+            CarIcon: (props) => <IconBase {...props}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path><circle cx="7" cy="17" r="2"></circle><path d="M9 17h6"></path><circle cx="17" cy="17" r="2"></circle></IconBase>,
+            BedIcon: (props) => <IconBase {...props}><path d="M2 4v16"></path><path d="M2 8h18a2 2 0 0 1 2 2v10"></path><path d="M2 17h20"></path><path d="M6 8v9"></path></IconBase>,
+            CameraIcon: (props) => <IconBase {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></IconBase>,
+            CoffeeIcon: (props) => <IconBase {...props}><path d="M17 8h1a4 4 0 1 1 0 8h-1"></path><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></IconBase>,
+            AlertTriangleIcon: (props) => <IconBase {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></IconBase>,
+            NavigationIcon: (props) => <IconBase {...props}><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></IconBase>,
+            SunIcon: (props) => <IconBase {...props}><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></IconBase>,
+            MoonIcon: (props) => <IconBase {...props}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></IconBase>,
+            MapPinIcon: (props) => <IconBase {...props}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></IconBase>,
+            ChevronDownIcon: (props) => <IconBase {...props}><polyline points="6 9 12 15 18 9"></polyline></IconBase>,
+            ChevronUpIcon: (props) => <IconBase {...props}><polyline points="18 15 12 9 6 15"></polyline></IconBase>,
+            EditIcon: (props) => <IconBase {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></IconBase>,
+            SaveIcon: (props) => <IconBase {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></IconBase>,
+        };
+
+        const { 
+            MapIcon, CalendarIcon, CheckSquareIcon, DollarSignIcon, 
+            CarIcon, BedIcon, CameraIcon, CoffeeIcon, AlertTriangleIcon, 
+            NavigationIcon, SunIcon, MoonIcon, MapPinIcon, ChevronDownIcon, ChevronUpIcon,
+            EditIcon, SaveIcon
+        } = Icons;
+
+        // --- Data ---
+        const initialItineraryData = [
+            {
+                day: 1,
+                date: "2/16 (一)",
+                title: "LA 出發：休閒海岸線",
+                route: "LA → Santa Barbara → Solvang → Pismo Beach",
+                stay: "Pismo Beach 或 San Luis Obispo",
+                icon: <SunIcon className="w-6 h-6 text-orange-500" />,
+                highlights: [
+                    { time: "09:00", text: "洛杉磯準時出發", type: "transport" },
+                    { time: "11:00", text: "聖塔芭芭拉 (法院鐘樓, Stearns Wharf)", type: "camera" },
+                    { time: "14:30", text: "丹麥村 Solvang (吃丹麥球, 逛風車)", type: "coffee" },
+                    { time: "17:30", text: "抵達 Pismo Beach 看夕陽", type: "bed" }
+                ],
+                tips: "去程走 101 公路比較輕鬆，避開難開的一號公路北段。推薦嘗試 Pismo Beach 的肉桂捲。",
+                mapLink: "https://www.google.com/maps/dir/Los+Angeles,+CA/Santa+Barbara,+CA/Solvang,+CA/Pismo+Beach,+CA"
+            },
+            {
+                day: 2,
+                date: "2/17 (二)",
+                title: "前往舊金山：水族館與小鎮",
+                route: "Pismo → Monterey → San Francisco",
+                stay: "舊金山 (漁人碼頭區)",
+                icon: <CarIcon className="w-6 h-6 text-blue-500" />,
+                highlights: [
+                    { time: "09:00", text: "沿 US-101 北上", type: "transport" },
+                    { time: "11:30", text: "蒙特雷水族館 (Monterey Bay Aquarium)", type: "camera" },
+                    { time: "14:00", text: "Carmel-by-the-Sea 小鎮畫廊漫步", type: "coffee" },
+                    { time: "17:00", text: "抵達舊金山 Check-in", type: "bed" }
+                ],
+                tips: "警示：抵達舊金山後，請務必清空車內所有物品，行李先寄放飯店。",
+                mapLink: "https://www.google.com/maps/dir/Pismo+Beach,+CA/Monterey+Bay+Aquarium,+Cannery+Row,+Monterey,+CA/San+Francisco,+CA"
+            },
+            {
+                day: 3,
+                date: "2/18 (三)",
+                title: "舊金山：經典地標",
+                route: "SF 市區遊覽",
+                stay: "舊金山 (續住)",
+                icon: <CameraIcon className="w-6 h-6 text-purple-500" />,
+                highlights: [
+                    { time: "上午", text: "惡魔島 Alcatraz Island (需預約)", type: "camera" },
+                    { time: "下午", text: "漁人碼頭 Pier 39 看海獅", type: "coffee" },
+                    { time: "16:00", text: "九曲花街 & 叮噹車體驗", type: "camera" },
+                    { time: "晚上", text: "China Town 或 North Beach 晚餐", type: "coffee" }
+                ],
+                tips: "惡魔島門票非常難搶，請設鬧鐘在 90 天前預訂。",
+                mapLink: "https://www.google.com/maps/search/Pier+39+San+Francisco"
+            },
+            {
+                day: 4,
+                date: "2/19 (四)",
+                title: "舊金山：自然與大橋",
+                route: "SF 近郊遊覽",
+                stay: "舊金山 (續住)",
+                icon: <MapPinIcon className="w-6 h-6 text-green-600" />,
+                highlights: [
+                    { time: "09:00", text: "Muir Woods 紅木森林 (需預約停車)", type: "camera" },
+                    { time: "13:00", text: "Sausalito 小鎮午餐 & 冰淇淋", type: "coffee" },
+                    { time: "15:30", text: "金門大橋觀景點 (Battery Spencer)", type: "camera" },
+                    { time: "晚上", text: "藝術宮 Palace of Fine Arts 散步", type: "bed" }
+                ],
+                tips: "Muir Woods 山區無訊號，請先截圖停車預約憑證。金門大橋風大請帶外套。",
+                mapLink: "https://www.google.com/maps/dir/San+Francisco,+CA/Muir+Woods+National+Monument,+Mill+Valley,+CA/Sausalito,+CA/Battery+Spencer,+Conzelman+Road,+Sausalito,+CA"
+            },
+            {
+                day: 5,
+                date: "2/20 (五)",
+                title: "舊金山：近郊一日遊",
+                route: "納帕酒鄉 OR 矽谷科技遊",
+                stay: "舊金山 (續住)",
+                icon: <CoffeeIcon className="w-6 h-6 text-red-500" />,
+                highlights: [
+                    { time: "全日", text: "方案A: Napa Valley 城堡酒莊品酒", type: "camera" },
+                    { time: "全日", text: "方案B: Apple Park & 史丹佛大學", type: "camera" },
+                    { time: "晚上", text: "返回舊金山市區整理行李", type: "bed" }
+                ],
+                tips: "若去 Napa 品酒，請指定駕駛或參加 Tour，切勿酒駕。",
+                mapLink: "https://www.google.com/maps/search/Napa+Valley"
+            },
+            {
+                day: 6,
+                date: "2/21 (六)",
+                title: "一號公路：懸崖絕景",
+                route: "SF → Big Sur → Cambria",
+                stay: "Cambria 或 San Simeon",
+                icon: <MapIcon className="w-6 h-6 text-indigo-600" />,
+                highlights: [
+                    { time: "08:30", text: "離開 SF，經 Santa Cruz", type: "transport" },
+                    { time: "中午", text: "進入 Big Sur 精華路段", type: "camera" },
+                    { time: "14:00", text: "Bixby Creek Bridge (必拍大橋)", type: "camera" },
+                    { time: "15:30", text: "McWay Falls (入海瀑布)", type: "camera" },
+                    { time: "18:00", text: "抵達 Cambria 住宿", type: "bed" }
+                ],
+                tips: "這段路海在右手邊，風景最美。山路蜿蜒，容易暈車者請備藥。",
+                mapLink: "https://www.google.com/maps/dir/San+Francisco,+CA/Bixby+Creek+Bridge,+California+1,+Monterey,+CA/McWay+Falls,+Big+Sur,+CA/Cambria,+CA"
+            },
+            {
+                day: 7,
+                date: "2/22 (日)",
+                title: "古堡與歸途",
+                route: "Cambria → Hearst Castle → LA",
+                stay: "溫暖的家",
+                icon: <MoonIcon className="w-6 h-6 text-slate-600" />,
+                highlights: [
+                    { time: "09:00", text: "赫氏古堡 Hearst Castle (需預約)", type: "camera" },
+                    { time: "12:00", text: "海象沙灘 Elephant Seal Vista", type: "camera" },
+                    { time: "14:00", text: "經過聖塔芭芭拉，返回洛杉磯", type: "transport" },
+                    { time: "傍晚", text: "抵達洛杉磯", type: "bed" }
+                ],
+                tips: "週末傍晚進 LA 容易塞車，請預留緩衝時間。",
+                mapLink: "https://www.google.com/maps/dir/Cambria,+CA/Hearst+Castle,+San+Simeon,+CA/Elephant+Seal+Vista+Point,+San+Simeon,+CA/Los+Angeles,+CA"
+            }
+        ];
+
+        const initialCheckListItems = [
+            { id: 1, text: "預訂惡魔島門票 (90天前)", category: "ticket", checked: false },
+            { id: 2, text: "預訂赫氏古堡導覽 (1-2個月前)", category: "ticket", checked: false },
+            { id: 3, text: "預訂 Muir Woods 停車位", category: "ticket", checked: false },
+            { id: 4, text: "租車 (含保險 & 無限里程)", category: "car", checked: false },
+            { id: 5, text: "下載 Google 離線地圖 (Big Sur)", category: "app", checked: false },
+            { id: 6, text: "準備暈車藥", category: "health", checked: false },
+            { id: 7, text: "準備防風外套 (SF 風大)", category: "clothing", checked: false },
+            { id: 8, text: "確認住宿 (尤其是 Pismo & Cambria)", category: "hotel", checked: false }
+        ];
+
+        const initialBudgetData = [
+            { id: 1, item: "租車 & 保險", estimated: 600, actual: 0, note: "7天中型SUV" },
+            { id: 2, item: "油資 & 停車", estimated: 400, actual: 0, note: "舊金山停車費高昂" },
+            { id: 3, item: "住宿 (6晚)", estimated: 1300, actual: 0, note: "雙人房平均" },
+            { id: 4, item: "餐飲", estimated: 900, actual: 0, note: "每日約 $130" },
+            { id: 5, item: "門票 & 雜支", estimated: 400, actual: 0, note: "古堡, 惡魔島, 水族館" }
+        ];
+
+        // --- Components ---
+
+        const NavButton = ({ active, onClick, icon, label }) => (
+            <button 
+                onClick={onClick}
+                className={`flex flex-col items-center justify-center p-2 flex-1 transition-colors ${
+                    active ? 'text-blue-600 bg-blue-50 border-t-2 border-blue-600' : 'text-gray-500 hover:text-blue-400'
+                }`}
+            >
+                {icon}
+                <span className="text-xs mt-1 font-medium">{label}</span>
+            </button>
+        );
+
+        const DayCard = ({ data }) => {
+            const [expanded, setExpanded] = useState(false);
+            
+            // Lazy initialize hotel info from local storage
+            const [hotelInfo, setHotelInfo] = useState(() => {
+                return localStorage.getItem(`trip_hotel_${data.day}`) || "";
+            });
+
+            const handleHotelSave = (e) => {
+                const val = e.target.value;
+                setHotelInfo(val);
+                localStorage.setItem(`trip_hotel_${data.day}`, val);
+            };
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                    <div 
+                        className="p-4 flex items-center justify-between cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+                        onClick={() => setExpanded(!expanded)}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-center justify-center bg-white border border-slate-200 rounded-lg w-12 h-12 shadow-sm">
+                                <span className="text-xs font-bold text-slate-500">{data.date.split(' ')[0]}</span>
+                                <span className="text-sm font-bold text-blue-600">{data.date.split(' ')[1]}</span>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-800">{data.title}</h3>
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                    <MapPinIcon size={12} /> {data.stay}
+                                </p>
+                            </div>
+                        </div>
+                        {expanded ? <ChevronUpIcon size={20} className="text-slate-400" /> : <ChevronDownIcon size={20} className="text-slate-400" />}
+                    </div>
+                    
+                    {expanded && (
+                        <div className="p-4 border-t border-slate-100 animate-fadeIn">
+                             <div className="mb-4">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">當日亮點</h4>
+                                <div className="space-y-3">
+                                    {data.highlights.map((h, idx) => (
+                                        <div key={idx} className="flex gap-3">
+                                            <span className="text-xs font-mono text-slate-500 w-10 pt-1">{h.time}</span>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-slate-700">{h.text}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="bg-yellow-50 p-3 rounded-lg mb-4 border border-yellow-100">
+                                <div className="flex items-start gap-2">
+                                    <AlertTriangleIcon size={16} className="text-yellow-600 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-yellow-800 leading-relaxed">{data.tips}</p>
+                                </div>
+                            </div>
+
+                            {/* Hotel Info Section */}
+                            <div className="mb-4">
+                                <h4 className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <BedIcon size={14} /> 預定住宿資訊
+                                </h4>
+                                <textarea
+                                    className="w-full p-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 placeholder-slate-400"
+                                    rows="3"
+                                    placeholder="在此輸入已預訂的飯店名稱、地址或訂房代號 (自動儲存)..."
+                                    value={hotelInfo}
+                                    onChange={handleHotelSave}
+                                ></textarea>
+                            </div>
+
+                            <a 
+                                href={data.mapLink} 
+                                target="_blank" 
+                                className="flex items-center justify-center gap-2 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                <NavigationIcon size={16} /> 開啟 Google Maps 路線
+                            </a>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ChecklistView = () => {
+            // Lazy initialization for checklist
+            const [items, setItems] = useState(() => {
+                const saved = localStorage.getItem('trip_checklist');
+                return saved ? JSON.parse(saved) : initialCheckListItems;
+            });
+
+            useEffect(() => {
+                localStorage.setItem('trip_checklist', JSON.stringify(items));
+            }, [items]);
+
+            const toggleItem = (id) => {
+                setItems(items.map(item => 
+                    item.id === id ? { ...item, checked: !item.checked } : item
+                ));
+            };
+
+            const progress = Math.round((items.filter(i => i.checked).length / items.length) * 100);
+
+            return (
+                <div className="p-4">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+                        <div className="flex justify-between items-end mb-2">
+                            <h2 className="font-bold text-slate-800">準備進度</h2>
+                            <span className="text-2xl font-bold text-blue-600">{isNaN(progress) ? 0 : progress}%</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2.5">
+                            <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${isNaN(progress) ? 0 : progress}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {items.map(item => (
+                            <div 
+                                key={item.id}
+                                onClick={() => toggleItem(item.id)}
+                                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                                    item.checked ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-blue-300'
+                                }`}
+                            >
+                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                                    item.checked ? 'bg-green-500 border-green-500' : 'border-slate-300 bg-white'
+                                }`}>
+                                    {item.checked && <CheckSquareIcon size={14} className="text-white" />}
+                                </div>
+                                <span className={`text-sm ${item.checked ? 'text-green-700 line-through' : 'text-slate-700'}`}>
+                                    {item.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const BudgetView = () => {
+            // Lazy initialization for budget
+            const [data, setData] = useState(() => {
+                const saved = localStorage.getItem('trip_budget');
+                return saved ? JSON.parse(saved) : initialBudgetData;
+            });
+
+            const handleActualChange = (id, val) => {
+                const newData = data.map(item => 
+                    item.id === id ? { ...item, actual: Number(val) } : item
+                );
+                setData(newData);
+                localStorage.setItem('trip_budget', JSON.stringify(newData));
+            };
+
+            const totalEstimated = data.reduce((acc, curr) => acc + curr.estimated, 0);
+            const totalActual = data.reduce((acc, curr) => acc + curr.actual, 0);
+
+            return (
+                <div className="p-4">
+                     <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-2xl shadow-lg mb-6 text-white">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-blue-100 text-sm mb-1">目前實際總支出 (USD)</p>
+                                <h2 className="text-3xl font-bold">${totalActual.toLocaleString()}</h2>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-blue-100 text-xs">預算參考</p>
+                                <p className="font-medium opacity-80">${totalEstimated.toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-blue-400/30 flex justify-between items-center">
+                            <p className="text-blue-100 text-xs">約 TWD {(totalActual * 32.5).toLocaleString()}</p>
+                            <span className={`text-xs px-2 py-1 rounded bg-white/20 ${totalActual > totalEstimated ? 'text-red-200' : 'text-green-200'}`}>
+                                {totalActual > totalEstimated ? `超出 $${(totalActual - totalEstimated).toLocaleString()}` : `剩餘 $${(totalEstimated - totalActual).toLocaleString()}`}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 p-3 text-xs font-semibold text-slate-600">
+                            <div className="col-span-5">項目</div>
+                            <div className="col-span-3 text-right">預算</div>
+                            <div className="col-span-4 text-right">實際支出</div>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {data.map((item) => (
+                                <div key={item.id} className="grid grid-cols-12 p-3 items-center">
+                                    <div className="col-span-5">
+                                        <div className="font-medium text-slate-800 text-sm">{item.item}</div>
+                                        <div className="text-[10px] text-slate-400">{item.note}</div>
+                                    </div>
+                                    <div className="col-span-3 text-right text-xs text-slate-500">
+                                        ${item.estimated}
+                                    </div>
+                                    <div className="col-span-4 pl-2">
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1.5 text-slate-400 text-xs">$</span>
+                                            <input 
+                                                type="number" 
+                                                value={item.actual === 0 ? '' : item.actual} 
+                                                onChange={(e) => handleActualChange(item.id, e.target.value)}
+                                                placeholder="0"
+                                                className="w-full pl-5 pr-2 py-1 text-sm text-right border border-slate-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-slate-50"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-4 text-center">輸入金額會自動儲存。匯率參考: 32.5</p>
+                </div>
+            );
+        };
+
+        const MapView = () => {
+            // Hand-drawn SVG Map
+            return (
+                <div className="p-4 flex flex-col items-center h-full">
+                    <div className="relative w-full max-w-sm aspect-[3/5] bg-[#fdfbf7] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-[4px_4px_0px_rgba(0,0,0,0.2)]">
+                        {/* Paper texture overlay */}
+                        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMwMDAiIG9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=')]"></div>
+
+                        <svg viewBox="0 0 300 550" className="w-full h-full relative z-10">
+                            <defs>
+                                {/* Hand-drawn wobble filter */}
+                                <filter id="roughpaper">
+                                    <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="5" result="noise" />
+                                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+                                </filter>
+                                <filter id="pencil">
+                                    <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
+                                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
+                                </filter>
+                            </defs>
+
+                            {/* CA Outline (Simplified & Rough) */}
+                            <path 
+                                d="M 50,30 L 120,30 L 240,180 L 270,400 L 250,520 L 170,530 L 120,480 L 20,180 Z" 
+                                fill="#e8e4d9" stroke="#94a3b8" strokeWidth="2" 
+                                filter="url(#roughpaper)"
+                            />
+                            
+                            {/* Ocean */}
+                            <path d="M -20,0 L 50,30 L 20,180 L 120,480 L 170,530 L -20,550 Z" fill="#dbeafe" opacity="0.5" filter="url(#roughpaper)" />
+
+                            {/* Routes */}
+                            {/* 101 North (Blue Dashed) */}
+                            <path 
+                                d="M 210,460 Q 180,420 160,320 T 100,140" 
+                                fill="none" stroke="#3b82f6" strokeWidth="3" strokeDasharray="8,4" strokeLinecap="round"
+                                filter="url(#pencil)"
+                            />
+                            
+                            {/* Hwy 1 South (Red Solid) */}
+                            <path 
+                                d="M 100,140 Q 60,250 120,380 T 210,460" 
+                                fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"
+                                filter="url(#pencil)"
+                            />
+
+                            {/* Locations Group */}
+                            <g className="hand-font text-[12px] font-bold fill-slate-700">
+                                
+                                {/* SF Area */}
+                                <g transform="translate(100, 140)">
+                                    <circle r="6" fill="#ef4444" stroke="#333" strokeWidth="1.5" />
+                                    <text x="-30" y="-10" className="text-[16px]">San Francisco</text>
+                                    <text x="-35" y="5" fontSize="10" className="font-normal fill-slate-500">Golden Gate</text>
+                                    <path d="M -20,-5 L -10,-15 L 0,-5" fill="none" stroke="#ef4444" strokeWidth="2" /> {/* Bridge icon */}
+                                </g>
+
+                                {/* Monterey */}
+                                <g transform="translate(90, 200)">
+                                    <circle r="4" fill="#fff" stroke="#333" strokeWidth="1.5" />
+                                    <text x="10" y="4">Monterey</text>
+                                </g>
+
+                                {/* Big Sur */}
+                                <g transform="translate(85, 260)">
+                                    <circle r="4" fill="#f59e0b" stroke="#333" strokeWidth="1.5" />
+                                    <text x="-45" y="4">Big Sur</text>
+                                    {/* Camera icon */}
+                                    <rect x="-25" y="-15" width="10" height="8" rx="1" fill="none" stroke="#555" />
+                                    <circle cx="-20" cy="-11" r="2" fill="none" stroke="#555" />
+                                </g>
+
+                                {/* Hearst Castle */}
+                                <g transform="translate(105, 320)">
+                                    <circle r="4" fill="#8b5cf6" stroke="#333" strokeWidth="1.5" />
+                                    <text x="10" y="4">Hearst Castle</text>
+                                    {/* Castle icon sketch */}
+                                    <path d="M 8,-5 L 8,-12 L 12,-12 L 12,-5" fill="none" stroke="#8b5cf6" />
+                                </g>
+
+                                {/* Cambria */}
+                                <g transform="translate(120, 340)">
+                                    <circle r="3" fill="#fff" stroke="#333" strokeWidth="1.5" />
+                                    <text x="-45" y="4" fill="#64748b">Cambria</text>
+                                </g>
+
+                                {/* Solvang */}
+                                <g transform="translate(150, 390)">
+                                    <circle r="4" fill="#ec4899" stroke="#333" strokeWidth="1.5" />
+                                    <text x="10" y="0">Solvang</text>
+                                    {/* Windmill sketch */}
+                                    <path d="M 15,5 L 20,15 L 10,15 Z" fill="none" stroke="#555" />
+                                    <path d="M 15,5 L 15,-5 M 10,0 L 20,0" stroke="#555" />
+                                </g>
+
+                                {/* Santa Barbara */}
+                                <g transform="translate(170, 420)">
+                                    <circle r="4" fill="#fff" stroke="#333" strokeWidth="1.5" />
+                                    <text x="10" y="4">Santa Barbara</text>
+                                </g>
+
+                                {/* LA */}
+                                <g transform="translate(210, 460)">
+                                    <circle r="7" fill="#22c55e" stroke="#333" strokeWidth="2" />
+                                    <text x="15" y="5" className="text-[16px]">Los Angeles</text>
+                                    <text x="15" y="18" fontSize="10" className="font-normal fill-slate-500">Start / End</text>
+                                </g>
+
+                            </g>
+                        </svg>
+
+                        <div className="absolute top-4 right-4 bg-white/80 p-3 rounded-xl text-xs shadow-sm backdrop-blur-sm border-2 border-slate-800 hand-font">
+                            <div className="font-bold mb-2 text-sm border-b border-slate-300 pb-1">Trip Legend</div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="w-8 h-0.5 bg-blue-500 border-b-2 border-blue-500 border-dashed"></span>
+                                <span>Route 101 (Up)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="w-8 h-1 bg-red-500 rounded-full"></span>
+                                <span>Hwy 1 (Down)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="mt-4 text-sm text-slate-500 text-center hand-font font-bold">
+                        Map of California Road Trip (Hand-drawn View)
+                    </p>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // Lazy initialization for activeTab to persist navigation state
+            const [activeTab, setActiveTab] = useState(() => {
+                return localStorage.getItem('trip_active_tab') || 'itinerary';
+            });
+
+            useEffect(() => {
+                localStorage.setItem('trip_active_tab', activeTab);
+            }, [activeTab]);
+
+            return (
+                <div className="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col relative overflow-hidden">
+                    {/* Header */}
+                    <header className="bg-blue-600 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-lg z-10 relative">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h1 className="text-2xl font-bold">2026 加州之旅</h1>
+                                <p className="text-blue-100 text-sm">洛杉磯 ⇄ 舊金山 | 7 天 6 夜</p>
+                            </div>
+                            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                                <CarIcon size={24} className="text-white" />
+                            </div>
+                        </div>
+                        <div className="flex gap-4 text-xs font-medium text-blue-100">
+                            <div className="flex items-center gap-1">
+                                <CheckSquareIcon size={14} /> 2人同行
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <MapIcon size={14} /> 一號公路
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Content Area */}
+                    <main className="flex-1 overflow-y-auto hide-scrollbar -mt-4 pt-6 pb-20 z-0 bg-slate-50">
+                        {activeTab === 'itinerary' && (
+                            <div className="px-4 animate-fadeIn">
+                                {initialItineraryData.map((day) => (
+                                    <DayCard key={day.day} data={day} />
+                                ))}
+                            </div>
+                        )}
+                        {activeTab === 'map' && <MapView />}
+                        {activeTab === 'checklist' && <ChecklistView />}
+                        {activeTab === 'budget' && <BudgetView />}
+                    </main>
+
+                    {/* Navigation Bar */}
+                    <nav className="bg-white border-t border-slate-200 flex justify-around safe-area-pb z-20">
+                        <NavButton 
+                            active={activeTab === 'itinerary'} 
+                            onClick={() => setActiveTab('itinerary')} 
+                            icon={<CalendarIcon size={20} />} 
+                            label="行程" 
+                        />
+                        <NavButton 
+                            active={activeTab === 'map'} 
+                            onClick={() => setActiveTab('map')} 
+                            icon={<MapIcon size={20} />} 
+                            label="地圖" 
+                        />
+                         <NavButton 
+                            active={activeTab === 'checklist'} 
+                            onClick={() => setActiveTab('checklist')} 
+                            icon={<CheckSquareIcon size={20} />} 
+                            label="清單" 
+                        />
+                        <NavButton 
+                            active={activeTab === 'budget'} 
+                            onClick={() => setActiveTab('budget')} 
+                            icon={<DollarSignIcon size={20} />} 
+                            label="花費" 
+                        />
+                    </nav>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
